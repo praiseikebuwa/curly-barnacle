@@ -7,6 +7,10 @@ from typing import Callable
 from .models import Action
 
 
+class ActionExecutionError(RuntimeError):
+    pass
+
+
 @dataclass
 class ActionExecutor:
     dry_run: bool = True
@@ -16,7 +20,7 @@ class ActionExecutor:
 
     def execute(self, action: Action) -> str:
         if action.kind not in self.ALLOWED:
-            raise ValueError(f"Unsupported action: {action.kind}")
+            raise ActionExecutionError(f"Unsupported action: {action.kind}")
         if self.confirm and not self.confirm(action):
             return "rejected by confirmation policy"
         if self.dry_run:
@@ -24,13 +28,16 @@ class ActionExecutor:
         try:
             import pyautogui
         except ImportError as exc:
-            raise RuntimeError("Install the desktop extra to execute actions: pip install -e '.[desktop]'") from exc
-        if action.kind == "click":
-            pyautogui.click(int(action.args["x"]), int(action.args["y"]))
-        elif action.kind == "type":
-            pyautogui.write(str(action.args["text"]), interval=0.01)
-        elif action.kind == "press":
-            pyautogui.press(str(action.args["key"]))
-        elif action.kind == "wait":
-            time.sleep(float(action.args.get("seconds", 1)))
+            raise ActionExecutionError("Install the desktop extra: pip install -e '.[desktop]'") from exc
+        try:
+            if action.kind == "click":
+                pyautogui.click(int(action.args["x"]), int(action.args["y"]))
+            elif action.kind == "type":
+                pyautogui.write(str(action.args["text"]), interval=0.01)
+            elif action.kind == "press":
+                pyautogui.press(str(action.args["key"]))
+            elif action.kind == "wait":
+                time.sleep(float(action.args.get("seconds", 1)))
+        except (KeyError, TypeError, ValueError, OSError) as exc:
+            raise ActionExecutionError(str(exc)) from exc
         return "executed"

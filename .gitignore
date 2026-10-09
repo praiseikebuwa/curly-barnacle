@@ -5,3 +5,5 @@ __pycache__/
 .venv/
 vision_agent.db
 screenshots/
+data/models/
+data/*.cleaned.jsonl

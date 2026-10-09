@@ -1,0 +1,20 @@
+{"text":"type Python tutorials","label":"type"}
+{"text":"enter the phrase hello world","label":"type"}
+{"text":"write my email into the field","label":"type"}
+{"text":"search for climate news","label":"type"}
+{"text":"wait for two seconds","label":"wait"}
+{"text":"pause briefly while the page loads","label":"wait"}
+{"text":"wait until the dialog appears","label":"wait"}
+{"text":"give the browser a moment","label":"wait"}
+{"text":"open the browser","label":"open"}
+{"text":"launch Chrome","label":"open"}
+{"text":"start the calculator application","label":"open"}
+{"text":"open the settings window","label":"open"}
+{"text":"press enter","label":"press"}
+{"text":"hit the escape key","label":"press"}
+{"text":"press the tab key","label":"press"}
+{"text":"send the enter key","label":"press"}
+{"text":"click the save button","label":"click"}
+{"text":"click at the visible button","label":"click"}
+{"text":"select the search field","label":"click"}
+{"text":"click the continue control","label":"click"}

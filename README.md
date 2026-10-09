@@ -1,38 +1,61 @@
 # Vision Agent
 
-A practical Python MVP for a computer-using assistant. It combines screenshot capture, OCR, visual-change verification, safe action execution, and SQLite memory. The design is intentionally adapter-based: desktop integrations are optional, while planning and tests work in headless environments.
+A practical Python computer-using assistant MVP that combines screenshot capture, OCR, multimodal reasoning, safe action execution, retries, memory, training data, and a live dashboard.
 
-## Features
+## What is implemented
 
-- **Observe:** capture the screen and extract text regions with OCR when available.
-- **Plan:** turn a small set of natural-language intents into explicit, reviewable actions.
-- **Act safely:** click/type/keypress/wait through an executor with dry-run mode and an allowlist of action kinds.
-- **Verify:** compare before/after screenshots using a perceptual difference score.
-- **Remember:** persist observations, actions, outcomes, and verified workflows in SQLite.
-- **Windows-friendly:** `mss`, `pyautogui`, and Tesseract are optional dependencies; Windows UI Automation can be added as a perception adapter.
+- **Observe:** screen capture with `mss`/PIL and optional Tesseract OCR.
+- **Reason:** optional OpenAI-compatible multimodal planner with structured JSON output and base64 screenshots. It uses `gemini-3-flash-preview` by default for vision and follows model-family token rules.
+- **Plan and act:** conservative local planner plus dry-run-first executor for click/type/press/wait.
+- **Recover:** exponential-backoff retry runner, action failure boundaries, recovery events, and graceful failed-task results.
+- **Remember:** SQLite observations, actions, workflows, and verified outcomes.
+- **Monitor:** Flask dashboard at `/` with `/api/events`, `/api/state`, and an SSE endpoint.
+- **Learn:** cleaned JSONL interface-action dataset and a reproducible pure-Python multinomial Naive Bayes intent classifier. This is memory/intent learning, not training a giant vision model.
 
-## Quick start
+## Install and test
 
 ```bash
-python -m venv .venv
+python3 -m venv .venv
 . .venv/bin/activate
 pip install -e '.[test]'
-python -m vision_agent.cli --help
-python -m pytest
+python -m pytest -q
 ```
 
-For desktop capture and control:
+Desktop support:
 
 ```bash
 pip install -e '.[desktop]'
 vision-agent observe --ocr
-vision-agent run "open the browser and search for Python tutorials" --dry-run
 ```
 
-Without `--dry-run`, the agent will request an explicit confirmation before executing a plan. Start with harmless tasks and keep the emergency stop behavior of your OS available. Never use it for passwords, payments, account security, or irreversible actions without human review.
+Optional multimodal reasoning:
 
-## Architecture
+```bash
+pip install -e '.[llm]'
+export OPENAI_API_KEY=...
+export OPENAI_API_BASE=...
+vision-agent run "search for Python tutorials"
+```
 
-`ScreenObserver` -> `Planner` -> `ActionExecutor` -> `ResultVerifier`, with `MemoryStore` alongside the loop. `vision_agent.adapters` are small protocols, making it straightforward to plug in a vision-language model or Windows UI Automation later.
+The LLM planner is available to Python callers as `MultimodalReasoner`; the default CLI remains local and dry-run-first.
 
-This is an MVP, not an autonomous system that understands every application. The built-in planner deliberately produces conservative plans for a few common intents and refuses to guess coordinates.
+## Dataset and training
+
+```bash
+vision-agent validate-dataset data/interface_actions.jsonl --output data/interface_actions.cleaned.jsonl
+vision-agent train --dataset data/interface_actions.jsonl --output data/models/intent_model.json
+```
+
+The starter dataset is intentionally small and curated. Add verified demonstrations as JSONL rows with `text` and one of the labels `type`, `wait`, `open`, `press`, or `click`. Validate before training.
+
+## Dashboard
+
+```bash
+vision-agent dashboard --host 127.0.0.1 --port 5000
+```
+
+For a live run, pass the same `EventBus` to `VisionAgent` and `create_app(event_bus)` from Python. The current CLI dashboard is a standalone monitor endpoint; production deployment should use authentication and HTTPS.
+
+## Safety
+
+This is not a fully autonomous system and deliberately refuses to invent coordinates. Keep dry-run mode enabled while developing. Require human review for passwords, payments, account security, deletion, or other irreversible actions.
