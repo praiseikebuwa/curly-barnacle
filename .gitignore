@@ -7,3 +7,5 @@ vision_agent.db
 screenshots/
 data/models/
 data/*.cleaned.jsonl
+frontend/node_modules/
+frontend/dist/
