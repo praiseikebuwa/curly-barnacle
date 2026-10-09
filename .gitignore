@@ -9,3 +9,6 @@ data/models/
 data/*.cleaned.jsonl
 frontend/node_modules/
 frontend/dist/
+data/synthetic_ui/
+checkpoints/
+logs/
