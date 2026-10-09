@@ -5,6 +5,7 @@ from dataclasses import dataclass
 from typing import Callable
 
 from .models import Action
+from .safety import SafetyPolicy
 
 
 class ActionExecutionError(RuntimeError):
@@ -15,12 +16,16 @@ class ActionExecutionError(RuntimeError):
 class ActionExecutor:
     dry_run: bool = True
     confirm: Callable[[Action], bool] | None = None
+    policy: SafetyPolicy | None = None
+    action_count: int = 0
 
     ALLOWED = {"click", "type", "press", "wait"}
 
     def execute(self, action: Action) -> str:
         if action.kind not in self.ALLOWED:
             raise ActionExecutionError(f"Unsupported action: {action.kind}")
+        if not self.dry_run:
+            (self.policy or SafetyPolicy()).check(action.kind, action.args, self.action_count)
         if self.confirm and not self.confirm(action):
             return "rejected by confirmation policy"
         if self.dry_run:
@@ -40,4 +45,5 @@ class ActionExecutor:
                 time.sleep(float(action.args.get("seconds", 1)))
         except (KeyError, TypeError, ValueError, OSError) as exc:
             raise ActionExecutionError(str(exc)) from exc
+        self.action_count += 1
         return "executed"

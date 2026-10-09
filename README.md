@@ -1,37 +1,54 @@
-# Vision Agent — from-scratch local training milestone
+# Vision Agent — local-first from-scratch computer-use platform
 
-This repository is now local-first and does **not** integrate hosted AI providers, external model APIs, pretrained checkpoints, or pretrained OCR/vision models. The current trained capability is deliberately narrow: a small randomly initialized NumPy visual classifier learns three synthetic UI-like classes (`button`, `text_field`, `panel`) and reports reproducible held-out accuracy. Existing screenshot capture, OCR adapter, safety controls, task state, recovery, API, dashboard, dataset, and action infrastructure remain available.
+Vision Agent is a local-first research platform for learning narrow computer-vision and action capabilities without hosted AI providers or pretrained model weights. It includes screenshot/OCR adapters, dataset tools, safe action execution, task state/recovery, FastAPI APIs, a React dashboard, and a reproducible from-scratch NumPy CNN pipeline.
 
-## Train our own first visual model
+## From-scratch visual model
+
+The current model is `DeepVisionCNN`: two convolution layers, ReLU activations, max pooling, a dense classifier, random initialization, and manually implemented NumPy backpropagation. It trains on six synthetic UI-like classes: `button`, `text_field`, `panel`, `checkbox`, `menu`, and `window`.
 
 ```bash
 python3 -m venv .venv
 . .venv/bin/activate
 pip install -e '.[test]'
-vision-agent-research hardware
+vision-agent hardware
 vision-agent train-vision --epochs 25
 vision-agent evaluate-vision
 ```
 
-Training creates a synthetic manifest under `data/synthetic_ui/`, a randomly initialized model checkpoint under `checkpoints/`, and a JSON training report under `logs/`. The report includes seed, epoch losses, validation accuracy, duration, and checkpoint path. The model uses NumPy operations and manually implemented gradients; no pretrained weights are loaded.
+Training produces a synthetic manifest under `data/synthetic_ui/`, a checkpoint under `checkpoints/`, and a JSON report under `logs/`. Reports include the architecture, seed, epoch losses, held-out accuracy, duration, and checkpoint path. Generated artifacts are ignored by git. The model is a measurable narrow experiment, not general screen understanding.
 
-The synthetic dataset is a scaffold for the first measurable phase, not a claim of general screen understanding. To grow capability, replace or augment it with reviewed screenshots and annotations collected through the dataset tools.
+## Dashboard and web model demo
 
-## Existing local platform
-
-Start the local FastAPI backend:
+Start the backend:
 
 ```bash
 visionos-api --host 127.0.0.1 --port 8000
 ```
 
-Start the React dashboard:
+Start the frontend separately:
 
 ```bash
-cd frontend && npm install && npm run dev
+cd frontend
+npm install
+npm run dev
 ```
 
-The backend exposes real health, task, screenshot-capture, secure-image-import, and event routes. The development server is localhost-only by default. Desktop input remains disabled until explicit safety policy/Windows adapter integration.
+The dashboard reads the real model state from `GET /api/v1/models/vision/status`. Before training it reports `unavailable`; after training it shows the actual architecture, epoch count, and held-out validation accuracy. It never displays fabricated metrics.
+
+## Safe computer control
+
+Dry-run is the default. Real mouse and keyboard operations require both `--execute` and the explicit `--allow-desktop-control` flag, and the executor checks the safety policy before each action:
+
+```bash
+vision-agent run "search for Python tutorials"
+vision-agent run "search for Python tutorials" --execute --allow-desktop-control
+```
+
+Use real control only on a controlled Windows test environment with approved applications. The sandbox cannot honestly validate Windows UI Automation or real input devices. Do not use the system for payments, passwords, account security, deletion, or other consequential actions.
+
+## Automation and skill
+
+GitHub Actions is configured in `.github/workflows/ci.yml`. Every push and pull request runs Python tests, from-scratch model training/evaluation, and the frontend production build. The reusable Manus skill is available at `skills/vision-agent-local-training/SKILL.md` and is also installed at `/home/ubuntu/skills/vision-agent-local-training/`.
 
 ## Tests
 
@@ -40,13 +57,8 @@ python -m pytest -q
 cd frontend && npm run build
 ```
 
-## Architecture decision
+The suite covers the CNN architecture, random initialization, checkpointing, held-out evaluation, API routes, safety policy, action validation, retries, memory, dataset export, secure image ingestion, and dashboard behavior.
 
-The previous hosted multimodal integration was removed to satisfy the from-scratch requirement. The system now has separate data generation, training, checkpoint, evaluation, inference, action, and control boundaries. A small local classifier is used because it can be trained and measured in this environment; a competitive general-purpose multimodal model would require far more licensed data and compute than an ordinary laptop.
+## Architecture and limits
 
-## Current limitations and next milestone
-
-- The first model classifies synthetic UI-like images; it does not yet detect arbitrary real UI elements or read text.
-- OCR remains an optional software adapter and is not presented as a model trained from scratch.
-- Windows UI Automation, Playwright, and real desktop-control validation require a Windows test environment.
-- Next: reviewed screenshot annotation studio, real UI element dataset, trained text-region/OCR component, and action demonstrations with held-out task evaluation.
+The system separates data generation, training, checkpoints, inference, action execution, safety, verification, task state, memory, APIs, and UI. OCR is an optional software adapter and is not presented as a trained project model. Windows UI Automation, Playwright, real desktop-control tests, a text transformer, and a trained OCR recognizer remain future milestones requiring reviewed data and a Windows test environment. No external AI provider is required or configured.

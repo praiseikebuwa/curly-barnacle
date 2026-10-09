@@ -8,12 +8,13 @@ from .from_scratch import evaluate_vision, train_vision
 from .hardware import assess, recommendation
 from .memory import MemoryStore
 from .perception import ScreenObserver
+from .safety import SafetyPolicy
 from .training import train_file
 
 def main() -> int:
     parser=argparse.ArgumentParser(description='Vision Agent: local-first computer automation and from-scratch training'); parser.add_argument('--db',default='vision_agent.db'); sub=parser.add_subparsers(dest='command',required=True)
     obs=sub.add_parser('observe'); obs.add_argument('--ocr',action='store_true')
-    run=sub.add_parser('run'); run.add_argument('task'); run.add_argument('--execute',action='store_true'); run.add_argument('--observe',action='store_true')
+    run=sub.add_parser('run'); run.add_argument('task'); run.add_argument('--execute',action='store_true'); run.add_argument('--allow-desktop-control',action='store_true',help='Explicitly enable approved mouse/keyboard operations'); run.add_argument('--observe',action='store_true')
     dash=sub.add_parser('dashboard'); dash.add_argument('--host',default='127.0.0.1'); dash.add_argument('--port',type=int,default=5000)
     train=sub.add_parser('train'); train.add_argument('--dataset',default='data/interface_actions.jsonl'); train.add_argument('--output',default='data/models/intent_model.json')
     tv=sub.add_parser('train-vision'); tv.add_argument('--data',default='data/synthetic_ui'); tv.add_argument('--checkpoint',default='checkpoints/tiny_vision.npz'); tv.add_argument('--report',default='logs/tiny_vision.json'); tv.add_argument('--epochs',type=int,default=25)
@@ -23,7 +24,7 @@ def main() -> int:
     if args.command=='observe':
         o=ScreenObserver().capture(args.ocr); print(json.dumps({'image':o.image_path,'size':[o.width,o.height],'elements':[e.__dict__ for e in o.elements]},indent=2))
     elif args.command=='run':
-        r=VisionAgent(memory=MemoryStore(args.db),executor=ActionExecutor(dry_run=not args.execute)).run(args.task,args.observe); print(json.dumps({'success':r.success,'message':r.message,'actions':[a.__dict__ for a in r.executed]},indent=2)); return 0 if r.success else 1
+        policy=SafetyPolicy(desktop_control_enabled=args.allow_desktop_control); r=VisionAgent(memory=MemoryStore(args.db),executor=ActionExecutor(dry_run=not args.execute,policy=policy)).run(args.task,args.observe); print(json.dumps({'success':r.success,'message':r.message,'actions':[a.__dict__ for a in r.executed]},indent=2)); return 0 if r.success else 1
     elif args.command=='dashboard': create_app().run(host=args.host,port=args.port,debug=False)
     elif args.command=='train':
         m=train_file(args.dataset,args.output); print(json.dumps({'labels':m.labels,'tokens':sum(m.totals.values()),'output':args.output},indent=2))
